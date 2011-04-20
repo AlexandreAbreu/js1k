@@ -2,136 +2,136 @@
 
 <head>
 
-	<script>
-	/*
-		First entry: http://js1k.com/2010-first/
-		A two-plane raytracer. distance is taken into account, pseudo-xor texture
-	*/
-	
-	function load () {
-		
-		M = Math;
-		pi = parseInt;
-		
-		c = document.getElementById ("c");
-		T = c.getContext('2d');
-		
-		h = 256; h2 = h/2;
-		w = 512; w2 = w/2;
-		
-		c.height = h;
-		c.width = w;
-		
-		im = T.getImageData (0, 0, w, h);
-		id = im.data;
-		
-		// size of an interpolation grid cell
-		G = 4;
-		P = 255;
-		
-		Number.prototype.m = function(n) {
-			return ((this%n)+n)%n;
-		}
-	
-		function norm (a, b, c) {
-			n = M.sqrt (a*a + b*b + c*c);
-			return [a / n, b / n, c / n];
-		}
-	
-		function fi (l) {
-			A = l[1];
-			return A != 0 ? 50 / A : 0;
-		}
-	
-		co = [0, 0, -100];
-		
-		// interpolation of a GxG cell, values are passed as an array in v
-		function fin (v, G) {
-			r = [];
-			vg = v[0], vd = v[1];
-			dvg = (v[2] - vg) / G, dvd = (v[3] - vd) / G;
-			cv = 0;
-			k = G; l = G;
-			while (k--) {
+<script>
+/*
+	First entry: http://js1k.com/2010-first/
+	A two-plane raytracer. distance is taken into account, pseudo-xor texture
+*/
 
-				dx = (vd - vg) / G;
-				cv = vg;
-				while (l--) {
-					r.push(cv);
-					cv += dx;
-				}
-				l = G;
-				vg += dvg;
-				vd += dvd;
+function load () {
+	
+	M = Math;
+	pi = parseInt;
+	
+	c = document.getElementById ("c");
+	T = c.getContext('2d');
+	
+	h = 256; h2 = h/2;
+	w = 512; w2 = w/2;
+	
+	c.height = h;
+	c.width = w;
+	
+	im = T.getImageData (0, 0, w, h);
+	id = im.data;
+	
+	// size of an interpolation grid cell
+	G = 4;
+	P = 255;
+	
+	Number.prototype.m = function(n) {
+		return ((this%n)+n)%n;
+	}
+
+	function norm (a, b, c) {
+		n = M.sqrt (a*a + b*b + c*c);
+		return [a / n, b / n, c / n];
+	}
+
+	function fi (l) {
+		A = l[1];
+		return A != 0 ? 50 / A : 0;
+	}
+
+	co = [0, 0, -100];
+	
+	// interpolation of a GxG cell, values are passed as an array in v
+	function fin (v, G) {
+		r = [];
+		vg = v[0], vd = v[1];
+		dvg = (v[2] - vg) / G, dvd = (v[3] - vd) / G;
+		cv = 0;
+		k = G; l = G;
+		while (k--) {
+
+			dx = (vd - vg) / G;
+			cv = vg;
+			while (l--) {
+				r.push(cv);
+				cv += dx;
 			}
-
-			return r;
-		};
-
-		z = 0;
-	
-		setInterval (function () {
-			for (y = 0; y < h2; y += G) {
-				for (x = -w2; x < w2; x += G) {
-					xp = x + w2;
-					yp = y + h2;
-					
-					// hit test
-					function F (x, y) {
-						d = norm (x, y, - co[2]);
-						i = fi (d);
-						
-						// check if we have a "hit", and simply xor the values to have a pseudo-texture
-						return (i > 0) ? (pi(i * d[0]).m (h)  ^ pi(i * d[2] + co[2] + z).m (h)) * M.exp (-i/150.0) : 0;
-					}
-					
-					// interpolate the grid from raytraced values
-					A = fin ([
-						F (x, y)
-						, F (x + G, y)
-						, F (x, y + G)
-						, F (x + G, y + G)
-						],
-						G
-					);
-					
-					// fill up all image data
-					i = 0;
-					for (yd = yp; yd < (yp + G); yd++) {
-						for (xd = xp; xd < (xp + G); xd++) {
-
-							I = (yd * w + xd) * 4;
-						
-							id[I + 0] = id[I + 1] = id[I + 2] = A[i++];
-							id[I + 3] = P;
-						}
-					}
-				}
-			}
-			
-			// dumb way to complete the lower part by symmetry
-			for (y = -h2; y < 0; y++) {
-				for (x = -w2; x < w2; x++) {
-				
-					xp = x + w2;
-					yp = y + h2;
-				
-					I = (yp * w + xp) * 4;
-				
-					id[I + 2] = id[((h - yp - 1) * w + (w - xp - 1)) * 4 + 2];
-					id[I + 3] = P;
-				}
-			}
-
-			im.data = id;
-
-			T.putImageData (im, 0, 0);
-
-			z += 10;
+			l = G;
+			vg += dvg;
+			vd += dvd;
 		}
-		, 30);
+
+		return r;
 	};
-	</script>
+
+	z = 0;
+
+	setInterval (function () {
+		for (y = 0; y < h2; y += G) {
+			for (x = -w2; x < w2; x += G) {
+				xp = x + w2;
+				yp = y + h2;
+				
+				// hit test
+				function F (x, y) {
+					d = norm (x, y, - co[2]);
+					i = fi (d);
+					
+					// check if we have a "hit", and simply xor the values to have a pseudo-texture
+					return (i > 0) ? (pi(i * d[0]).m (h) ^ pi(i * d[2] + co[2] + z).m (h)) * M.exp (-i/150.0) : 0;
+				}
+				
+				// interpolate the grid from raytraced values
+				A = fin ([
+					F (x, y)
+					, F (x + G, y)
+					, F (x, y + G)
+					, F (x + G, y + G)
+					],
+					G
+				);
+				
+				// fill up all image data
+				i = 0;
+				for (yd = yp; yd < (yp + G); yd++) {
+					for (xd = xp; xd < (xp + G); xd++) {
+
+						I = (yd * w + xd) * 4;
+					
+						id[I + 0] = id[I + 1] = id[I + 2] = A[i++];
+						id[I + 3] = P;
+					}
+				}
+			}
+		}
+		
+		// dumb way to complete the lower part by symmetry
+		for (y = -h2; y < 0; y++) {
+			for (x = -w2; x < w2; x++) {
+			
+				xp = x + w2;
+				yp = y + h2;
+			
+				I = (yp * w + xp) * 4;
+			
+				id[I + 2] = id[((h - yp - 1) * w + (w - xp - 1)) * 4 + 2];
+				id[I + 3] = P;
+			}
+		}
+
+		im.data = id;
+
+		T.putImageData (im, 0, 0);
+
+		z += 10;
+	}
+	, 30);
+};
+</script>
 
 </head>
 
