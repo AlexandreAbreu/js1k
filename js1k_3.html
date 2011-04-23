@@ -1,0 +1,129 @@
+<html>
+
+<head>
+
+<script>
+/*
+	First entry: http://js1k.com/2010-first/
+	A two-plane raytracer. distance is taken into account, pseudo-xor texture
+*/
+
+function load () {
+	
+	var drawCircle = function (ctx, x, y, size) {
+        ctx.fillStyle = 'rgba(170,226,251,0.5)';
+        ctx.beginPath();
+        ctx.arc (x, y, size/2.0, 0.0, Math.PI*2.0, true);
+        ctx.closePath ();
+        ctx.fill ();
+	};
+	
+	M = Math;
+	pi = parseInt;
+	
+	c = document.getElementById ("c");
+	var ctx = c.getContext('2d');
+	
+	ctx.globalAlpha = 0.2;
+	
+	h = 512; h2 = h/2;
+	w = 512; w2 = w/2;
+	
+	c.height = h;
+	c.width = w;
+	
+	var p = {x: w2, y: h2};
+	var ps = [{x: w2+20, y: h2}, {x: w2, y: h2+20}, {x: w2+20, y: h2+20}, {x: w2, y: h2}];
+	var t = 0;
+	
+	var cutoff = 150;
+	var distanceFrom = function (cell, point) {
+		var x = (cell.x - point.x);
+		var y = (cell.y - point.y);
+		return Math.sqrt (x*x + y*y);
+	};
+	
+	var lerp = function (a, b, t) {
+		return a + (b - a) * t;
+	};
+	
+	var colorb = [0xff, 0xf8, 0xe8];
+	var colora = [0x9e, 0x6b, 0x19];
+	
+	setInterval (function () {
+		
+		ctx.fillStyle = '#FFF';
+		
+		ctx.fillRect (0, 0, w, h);
+		
+		var step = 50;
+        var cnt = 0;
+        var colorstep = 255.0 / (step * step);
+        var stepx = w / step;
+        var stepy = h / step;
+		var padding = 0;
+		
+        for (var y = 0; y <= h; y += (stepy + padding)) {
+             for (var x = 0; x <= w; x += (stepx + padding)) {
+				
+				var v = 0;
+				for (var i = 0; i  < ps.length; ++i) {
+					var d = distanceFrom ({x: x + stepx/2, y: y + stepy/2}, ps[i]);
+					
+					if (d < cutoff) {
+						var df = (cutoff - d) / cutoff;
+						v += df;
+					}
+				}
+				
+				if (v == 0) {
+					ctx.fillStyle = 'rgb(' + colora[0].toString(10) + ',' + colora[1].toString(10) + ',' + colora[2].toString(10) + ')';
+				}
+				else {
+					var vm = Math.min (v, 1.0);
+					
+	                ctx.fillStyle = 'rgb(' + Math.floor(lerp (colora[0], colorb[0], vm)) + ','
+									+ Math.floor(lerp (colora[1], colorb[1], vm)) + ','
+									+ Math.floor(lerp (colora[2], colorb[2], vm)) + ')';
+				}
+				
+                ctx.fillRect (x+1, y+1, stepx - 2, stepy - 2);
+				
+                ++cnt;
+             }
+		}
+		
+		for (var i = 0; i < ps.length; ++i) {
+			
+			var ti = t/5;
+			
+			ps[i].x = w2 + 20 * i + 50 * (i+1) * Math.sin (ti/30) * Math.sin (ti/8.5) + (i % 2) * 40 * Math.sin (ti/27.5);
+			ps[i].y = h2 + 200 * Math.cos (ti/10) * Math.sin ((ti + i*59)/17)* Math.sin (ti/7);
+			
+			drawCircle(ctx, ps[i].x, ps[i].y, 50);
+		}
+		
+		ctx.fillStyle = '#000';
+		ctx.beginPath();
+		ctx.moveTo(75,40);
+		ctx.bezierCurveTo(75,37,70,25,50,25);
+		ctx.bezierCurveTo(20,25,20,62.5,20,62.5);
+		ctx.bezierCurveTo(20,80,40,102,75,120);
+		ctx.bezierCurveTo(110,102,130,80,130,62.5);
+		ctx.bezierCurveTo(130,62.5,130,25,100,25);
+		ctx.bezierCurveTo(85,25,75,37,75,40);
+		ctx.stroke();
+		
+		t += 1;
+	}, 50);
+	
+};
+</script>
+
+</head>
+
+<body onload="load()">
+		<canvas id="c"></canvas>
+</body>
+
+</html>
