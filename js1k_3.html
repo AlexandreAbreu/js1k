@@ -26,14 +26,15 @@ function load () {
 	
 	ctx.globalAlpha = 0.2;
 	
-	h = 512; h2 = h/2;
-	w = 512; w2 = w/2;
+	h = window.innerHeight; h2 = h/2;
+	w = window.innerWidth; w2 = w/2;
 	
 	c.height = h;
 	c.width = w;
 	
+	var text = "DYSENTRY";
 	var p = {x: w2, y: h2};
-	var ps = [{x: w2+20, y: h2}, {x: w2, y: h2+20}, {x: w2+20, y: h2+20}, {x: w2, y: h2}];
+	var ps = [{x: 0, y: 0, vx: 0, vy: 0}, {x: w2, y: h2+20, vx: 0, vy: 0}, {x: w2+20, y: h2+20, vx: 0, vy: 0}, {x: w2, y: h2, vx: 0, vy: 0}];
 	var t = 0;
 	
 	var cutoff = 150;
@@ -50,21 +51,46 @@ function load () {
 	var colorb = [0xff, 0xf8, 0xe8];
 	var colora = [0x9e, 0x6b, 0x19];
 	
+	var clicks = [];
+	
+	var G = 20000;
+	var attractionForceFromDistance = function (direction, d) {
+		var constant = G / Math.pow (d, 1.20);
+		return {x: direction.x * constant, y: direction.y * constant};
+	};
+	
+	var positionModifierFromForce = function (force, intensity, dt) {
+		
+		return {
+			x: dt * (force.x) / intensity, y: dt * (force.y) / intensity
+		}
+	};
+	
+	var vectorBetween = function (x1, x2) {
+		var x = (x2.x - x1.x);
+		var y = (x2.y - x1.y);
+		var m = Math.sqrt (x*x+y*y);
+		return {
+			x: x/m, y: y/m
+		};
+	};
+	
+	var timestep = 50;
+	
 	setInterval (function () {
 		
 		ctx.fillStyle = '#FFF';
-		
 		ctx.fillRect (0, 0, w, h);
 		
-		var step = 50;
+		var step = 20.28;
         var cnt = 0;
         var colorstep = 255.0 / (step * step);
         var stepx = w / step;
         var stepy = h / step;
 		var padding = 0;
 		
-        for (var y = 0; y <= h; y += (stepy + padding)) {
-             for (var x = 0; x <= w; x += (stepx + padding)) {
+        for (var y = 0; y <= h; y += step) {
+             for (var x = 0; x <= w; x += step) {
 				
 				var v = 0;
 				for (var i = 0; i  < ps.length; ++i) {
@@ -87,7 +113,7 @@ function load () {
 									+ Math.floor(lerp (colora[2], colorb[2], vm)) + ')';
 				}
 				
-                ctx.fillRect (x+1, y+1, stepx - 2, stepy - 2);
+                ctx.fillRect (x, y, step, step);
 				
                 ++cnt;
              }
@@ -97,26 +123,57 @@ function load () {
 			
 			var ti = t/5;
 			
-			ps[i].x = w2 + 20 * i + 50 * (i+1) * Math.sin (ti/30) * Math.sin (ti/8.5) + (i % 2) * 40 * Math.sin (ti/27.5);
-			ps[i].y = h2 + 200 * Math.cos (ti/10) * Math.sin ((ti + i*59)/17)* Math.sin (ti/7);
+			var xp = w2 + 20 * i + 200 * (i+1) * Math.sin (ti/30) * Math.sin (ti/8.5) + (i % 2) * 40 * Math.sin (ti/27.5);
+			var yp = h2 + 500 * Math.cos (ti/10) * Math.sin ((ti + i*59)/17)* Math.sin (ti/7);
+			
+			ps[i].vx = xp - ps[i].x;
+			ps[i].vy = yp - ps[i].y;
+			
+			var pmodif = {x: 0, y:0};
+			for (var cindex = 0; cindex < clicks.length; ++cindex) {
+				var v12 = vectorBetween(ps[i], clicks[cindex]);
+				var distance = distanceFrom (ps[i], clicks[cindex]);
+				var speed = positionModifierFromForce (attractionForceFromDistance (v12, distance)
+														, 1
+														, timestep / 1000);
+				
+				ctx.fillStyle = "rgb(255,0,0)";
+				ctx.beginPath();
+				ctx.moveTo(ps[i].x,ps[i].y);
+				ctx.lineTo(ps[i].x + distance*v12.x, ps[i].y + distance*v12.y);
+				ctx.stroke();
+				
+				pmodif.x += speed.x * timestep / 1000;
+				pmodif.y += speed.y * timestep / 1000;
+			}
+			
+			ps[i].x = xp + pmodif.x;
+			ps[i].y = yp + pmodif.y;
+			
+			ctx.font = "20pt Arial";
+			
+			ctx.fillText('D', ps[i].x-10, ps[i].y+8, 20);
 			
 			drawCircle(ctx, ps[i].x, ps[i].y, 50);
 		}
 		
-		ctx.fillStyle = '#000';
-		ctx.beginPath();
-		ctx.moveTo(75,40);
-		ctx.bezierCurveTo(75,37,70,25,50,25);
-		ctx.bezierCurveTo(20,25,20,62.5,20,62.5);
-		ctx.bezierCurveTo(20,80,40,102,75,120);
-		ctx.bezierCurveTo(110,102,130,80,130,62.5);
-		ctx.bezierCurveTo(130,62.5,130,25,100,25);
-		ctx.bezierCurveTo(85,25,75,37,75,40);
-		ctx.stroke();
+		// update the color for clicked items
+		for (var i = 0; i < clicks.length; ++i) {
+			var x = Math.floor(clicks[i].x / step);
+			var y = Math.floor(clicks[i].y / step);
+			
+            ctx.fillStyle = '#2c8c29';
+            ctx.fillRect (x*step, y*step, step, step);
+		}
 		
 		t += 1;
-	}, 50);
+		
+	}, timestep);
 	
+	// Set the current bot's target x,y based on the mouse position
+	onclick = function(event) {
+	  clicks.push ({x: event.pageX, y: event.pageY});
+	};
 };
 </script>
 
